@@ -743,6 +743,28 @@ func (c *Consumer) syncGroup(strategy *balancer) (map[string][]int32, error) {
 	return members.Topics, nil
 }
 
+func (c *Consumer) FetchOffsets(subs map[string][]int32) (map[string]map[int32]int64, error) {
+	offsetInfo, err := c.fetchOffsets(subs)
+	if err != nil {
+		return nil, err
+	}
+
+	retInfo := make(map[string]map[int32]int64)
+
+	for topic, partitionMap := range offsetInfo {
+		topicMap, ok := retInfo[topic]
+		if !ok {
+			topicMap = make(map[int32]int64)
+			retInfo[topic] = topicMap
+		}
+		for partition, info := range partitionMap {
+			topicMap[partition] = info.Offset
+		}
+	}
+
+	return retInfo, nil
+}
+
 // Fetches latest committed offsets for all subscriptions
 func (c *Consumer) fetchOffsets(subs map[string][]int32) (map[string]map[int32]offsetInfo, error) {
 	offsets := make(map[string]map[int32]offsetInfo, len(subs))
